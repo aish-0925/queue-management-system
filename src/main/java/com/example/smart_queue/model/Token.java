@@ -13,6 +13,11 @@ public class Token {
 
     public Token() {}
 
+    public Token(String userName) {
+    this.userName = userName;
+    this.status = "WAITING"; // default
+}
+
     public Token(String userName, int position, String status) {
         this.userName = userName;
         this.position = position;
