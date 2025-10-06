@@ -1,52 +1,50 @@
-package com.example.smart_queue.model;
+package com.example.smartqueue.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.time.Instant;
 
 @Document(collection = "tokens")
 public class Token {
     @Id
     private String id;
-    private String userName;
-    private int position;
-    private String status; // WAITING, SERVED
+
+    @Indexed(unique = true)
+    private String tokenNo; // e.g., "A001" or numeric string
+
+    private String service; // optional: which service/queue
+    private int sequence; // numeric sequence
+    private Instant createdAt;
+    private boolean served;
+    private Instant servedAt;
 
     public Token() {}
 
-    public Token(String userName) {
-    this.userName = userName;
-    this.status = "WAITING"; // default
-}
-
-    public Token(String userName, int position, String status) {
-        this.userName = userName;
-        this.position = position;
-        this.status = status;
+    public Token(String tokenNo, String service, int sequence) {
+        this.tokenNo = tokenNo;
+        this.service = service;
+        this.sequence = sequence;
+        this.createdAt = Instant.now();
+        this.served = false;
     }
 
-    // Getters and setters
-    public String getId() {
-        return id;
-    }
-    public void setId(String id) {
-        this.id = id;
-    }
-    public String getUserName() {
-        return userName;
-    }
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-    public int getPosition() {
-        return position;
-    }
-    public void setPosition(int position) {
-        this.position = position;
-    }
-    public String getStatus() {
-        return status;
-    }
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    // getters and setters
+    // (omit for brevity or use Lombok if preferred)
+    // ...
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+    public String getTokenNo() { return tokenNo; }
+    public void setTokenNo(String tokenNo) { this.tokenNo = tokenNo; }
+    public String getService() { return service; }
+    public void setService(String service) { this.service = service; }
+    public int getSequence() { return sequence; }
+    public void setSequence(int sequence) { this.sequence = sequence; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public boolean isServed() { return served; }
+    public void setServed(boolean served) { this.served = served; }
+    public Instant getServedAt() { return servedAt; }
+    public void setServedAt(Instant servedAt) { this.servedAt = servedAt; }
 }
