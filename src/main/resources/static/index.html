@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Smart Queue - Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 2rem auto; }
+    .card { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    button { padding: 0.5rem 1rem; }
+    .tokens { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Smart Queue (Demo)</h1>
+
+  <div class="card">
+    <label>Service Prefix: <input type="text" id="service" value="A" style="width:50px" /></label>
+    <button id="generate">Generate Token</button>
+    <div id="created" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="card">
+    <h3>Live Queue Status</h3>
+    <div>Pending Count: <span id="pending">-</span></div>
+    <div>Next Token: <span id="next">-</span></div>
+    <div>Tokens: <span id="tokens">-</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Watch your token</h3>
+    <input id="watchToken" placeholder="Enter token e.g., A001" />
+    <button id="checkPos">Check Position (once)</button>
+    <div id="pos"></div>
+  </div>
+
+  <script>
+    let stompClient = null;
+
+    function connect(service) {
+      if (stompClient) {
+        // unsubscribe and reconnect
+        try { stompClient.disconnect(); } catch (e) {}
+      }
+      const sock = new SockJS('/ws');
+      stompClient = Stomp.over(sock);
+      stompClient.connect({}, function(frame) {
+        console.log('Connected: ' + frame);
+        // subscribe to service topic
+        stompClient.subscribe('/topic/queue/' + service, function(message) {
+          const payload = JSON.parse(message.body);
+          document.getElementById('pending').innerText = payload.pendingCount;
+          document.getElementById('next').innerText = payload.nextToken || '-';
+          document.getElementById('tokens').innerText = (payload.tokens || []).join(', ');
+        });
+      }, function(error) {
+        console.error('STOMP error', error);
+      });
+    }
+
+    // default connect to 'A'
+    connect(document.getElementById('service').value);
+
+    document.getElementById('service').addEventListener('change', function(e){
+      connect(e.target.value || 'A');
+    });
+
+    document.getElementById('generate').addEventListener('click', function(){
+      const service = document.getElementById('service').value || 'A';
+      fetch('/api/queue/token?service=' + encodeURIComponent(service), {
+        method: 'POST'
+      }).then(res => res.json())
+        .then(data => {
+          document.getElementById('created').innerText = 'Your token: ' + data.tokenNo;
+        }).catch(err => {
+          console.error(err);
+          alert('Failed to create token');
+        });
+    });
+
+    document.getElementById('checkPos').addEventListener('click', function(){
+      const token = document.getElementById('watchToken').value.trim();
+      if (!token) { alert('Enter token'); return; }
+      fetch('/api/queue/position/' + encodeURIComponent(token))
+        .then(res => {
+          if (!res.ok) throw new Error('Not found');
+          return res.json();
+        })
+        .then(data => {
+          document.getElementById('pos').innerText = 'Position: ' + data.position;
+        })
+        .catch(err => {
+          document.getElementById('pos').innerText = 'Token not found or error';
+        });
+    });
+  </script>
+</body>
+</html>
